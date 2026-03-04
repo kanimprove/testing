@@ -49,7 +49,12 @@ def process_document(
     raw_text = ocr_file(file_path)
 
     # Count pages from OCR output
-    pages = raw_text.count("--- Page ") or 1
+    if not raw_text or not raw_text.strip():
+        # No text produced by OCR; treat as zero successfully processed pages.
+        pages = 0
+    else:
+        # Estimate page count from page markers; assume at least one page when text exists.
+        pages = raw_text.count("--- Page ") or 1
 
     # Step 2: De-identify
     deid_result = deidentifier.deidentify(raw_text)
