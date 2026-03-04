@@ -37,7 +37,7 @@ def binarize(img: np.ndarray) -> np.ndarray:
 
 def deskew(img: np.ndarray) -> np.ndarray:
     """Detect and correct skew angle using minAreaRect on contours."""
-    coords = np.column_stack(np.where(img > 0))
+    coords = np.column_stack(np.where(img < 255))
     if len(coords) < 5:
         return img
     angle = cv2.minAreaRect(coords)[-1]
