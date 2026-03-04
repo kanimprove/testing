@@ -5,6 +5,8 @@ EMAIL_ADDRESS, US_SSN, LOCATION, URL, IP_ADDRESS, US_DRIVER_LICENSE,
 DATE_TIME) with patterns common in clinical documents.
 """
 
+import re
+
 from presidio_analyzer import PatternRecognizer, Pattern, EntityRecognizer, RecognizerResult
 from presidio_analyzer.nlp_engine import NlpArtifacts
 
@@ -160,6 +162,52 @@ class FacilityRecognizer(EntityRecognizer):
         return results
 
 
+class PatientNameRecognizer(EntityRecognizer):
+    """Recognizes patient names in structured clinical header fields.
+
+    Detects names following labels like 'Patient:', 'Patient Name:',
+    'Name:', 'Pt:', 'Client:' that spaCy NER may miss due to lack
+    of sentence context.
+    """
+
+    HEADER_PATTERN = re.compile(
+        r"(?:^|(?<=\n))"
+        r"[ \t]*"
+        r"(?:Patient\s+Name|Patient|Name|Pt|Client)"
+        r"[ \t]*[:=][ \t]*"
+        r"([A-Za-z][A-Za-z .'\-]{1,60})",
+        re.IGNORECASE | re.MULTILINE,
+    )
+
+    def __init__(self):
+        super().__init__(
+            supported_entities=["PERSON"],
+            supported_language="en",
+            name="Patient Name Recognizer",
+        )
+
+    def load(self):
+        pass
+
+    def analyze(self, text: str, entities, nlp_artifacts=None, **kwargs):
+        results = []
+        for match in self.HEADER_PATTERN.finditer(text):
+            name = match.group(1).strip().rstrip(" .,;")
+            if len(name) < 3 or " " not in name:
+                continue
+            name_start = match.start(1) + (len(match.group(1)) - len(match.group(1).lstrip()))
+            name_end = name_start + len(name)
+            results.append(
+                RecognizerResult(
+                    entity_type="PERSON",
+                    start=name_start,
+                    end=name_end,
+                    score=0.85,
+                )
+            )
+        return results
+
+
 def get_all_custom_recognizers() -> list:
     """Return all custom clinical recognizers for registration."""
     return [
@@ -170,4 +218,5 @@ def get_all_custom_recognizers() -> list:
         create_device_identifier_recognizer(),
         create_vin_recognizer(),
         FacilityRecognizer(),
+        PatientNameRecognizer(),
     ]

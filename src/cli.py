@@ -10,6 +10,7 @@ import argparse
 import glob
 import os
 import sys
+import traceback
 
 SUPPORTED_EXTENSIONS = ("*.pdf", "*.png", "*.jpg", "*.jpeg", "*.tiff", "*.tif", "*.bmp")
 
@@ -49,6 +50,7 @@ def cmd_process_all(args):
     """Process all supported documents in a directory."""
     from src.pipeline import process_document
     from src.phi.mapping import MappingStore
+    from src.phi.deidentifier import DeIdentifier
 
     os.makedirs(args.output_dir, exist_ok=True)
     mapping_store = MappingStore(storage_dir=args.mapping_dir)
@@ -65,6 +67,10 @@ def cmd_process_all(args):
 
     print(f"Found {len(files)} document(s) to process.\n")
 
+    deidentifier = DeIdentifier()
+    success_count = 0
+    fail_count = 0
+
     for i, file_path in enumerate(sorted(files), 1):
         filename = os.path.basename(file_path)
         print(f"[{i}/{len(files)}] Processing: {filename}")
@@ -72,6 +78,7 @@ def cmd_process_all(args):
             result = process_document(
                 file_path=file_path,
                 mapping_store=mapping_store,
+                deidentifier=deidentifier,
             )
             output_path = os.path.join(args.output_dir, f"{result.document_id}.txt")
             with open(output_path, "w") as f:
@@ -80,11 +87,14 @@ def cmd_process_all(args):
             print(f"        Pages processed:   {result.pages_processed}")
             print(f"        PHI entities found: {result.phi_count}")
             print(f"        Output: {output_path}")
+            success_count += 1
         except Exception as e:
             print(f"        ERROR: {e}")
+            traceback.print_exc()
+            fail_count += 1
         print()
 
-    print(f"Done! Processed {len(files)} document(s).")
+    print(f"Done! {success_count} succeeded, {fail_count} failed out of {len(files)} document(s).")
     print(f"Results are in: {os.path.abspath(args.output_dir)}")
 
 
