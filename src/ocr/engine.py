@@ -33,16 +33,21 @@ def ocr_pdf(pdf_path: str) -> str:
     """
     import gc
     from pdf2image import convert_from_path
+    from pdf2image.pdf2image import pdfinfo_from_path
+
+    info = pdfinfo_from_path(pdf_path)
+    total_pages = info.get("Pages", 0)
+    if total_pages == 0:
+        return ""
 
     results = []
-    page_num = 1
-    while True:
+    for page_num in range(1, total_pages + 1):
         pages = convert_from_path(
             pdf_path, dpi=300,
             first_page=page_num, last_page=page_num,
         )
         if not pages:
-            break
+            continue
         img = np.array(pages[0])
         del pages
         img = preprocess(img)
@@ -50,7 +55,6 @@ def ocr_pdf(pdf_path: str) -> str:
         del img
         if text:
             results.append(f"--- Page {page_num} ---\n{text}")
-        page_num += 1
         gc.collect()
     return "\n\n".join(results)
 

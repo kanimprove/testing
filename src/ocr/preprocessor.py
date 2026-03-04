@@ -24,8 +24,8 @@ def convert_to_grayscale(img: np.ndarray) -> np.ndarray:
 
 
 def denoise(img: np.ndarray) -> np.ndarray:
-    """Remove noise using non-local means denoising."""
-    return cv2.fastNlMeansDenoising(img, h=10, templateWindowSize=7, searchWindowSize=21)
+    """Remove noise using median blur — memory-efficient for scanned docs."""
+    return cv2.medianBlur(img, 3)
 
 
 def binarize(img: np.ndarray) -> np.ndarray:
@@ -36,11 +36,19 @@ def binarize(img: np.ndarray) -> np.ndarray:
 
 
 def deskew(img: np.ndarray) -> np.ndarray:
-    """Detect and correct skew angle using minAreaRect on contours."""
-    coords = np.column_stack(np.where(img < 255))
+    """Detect and correct skew angle using minAreaRect on contours.
+
+    Uses a 4x downsampled image for angle detection to reduce memory usage,
+    then applies the rotation to the full-size image.
+    """
+    # Downsample 4x for angle detection — reduces coordinate array by 16x
+    small = img[::4, ::4]
+    coords = np.column_stack(np.where(small < 255))
+    del small
     if len(coords) < 5:
         return img
     angle = cv2.minAreaRect(coords)[-1]
+    del coords
     # cv2.minAreaRect returns angles in [-90, 0)
     if angle < -45:
         angle = -(90 + angle)
@@ -58,9 +66,16 @@ def deskew(img: np.ndarray) -> np.ndarray:
 
 
 def preprocess(img: np.ndarray) -> np.ndarray:
-    """Full preprocessing pipeline: grayscale → denoise → binarize → deskew."""
-    img = convert_to_grayscale(img)
-    img = denoise(img)
-    img = binarize(img)
-    img = deskew(img)
-    return img
+    """Full preprocessing pipeline: grayscale → denoise → binarize → deskew.
+
+    Explicitly deletes intermediate arrays to prevent memory accumulation
+    when processing many pages in sequence.
+    """
+    gray = convert_to_grayscale(img)
+    del img
+    denoised = denoise(gray)
+    del gray
+    binary = binarize(denoised)
+    del denoised
+    result = deskew(binary)
+    return result

@@ -7,6 +7,7 @@ Usage:
 """
 
 import argparse
+import gc
 import glob
 import os
 import sys
@@ -99,6 +100,7 @@ def cmd_process_all(args):
             sys.stdout.flush()
             fail_count += 1
         _print()
+        gc.collect()
 
     _print(f"Done! {success_count} succeeded, {fail_count} failed out of {len(files)} document(s).")
     _print(f"Results are in: {os.path.abspath(args.output_dir)}")
