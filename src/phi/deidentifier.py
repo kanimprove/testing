@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 from presidio_analyzer import AnalyzerEngine, RecognizerRegistry
 from presidio_anonymizer import AnonymizerEngine
-from presidio_anonymizer.entities import OperatorConfig
 
 from src.phi.mapping import PHIMapping
 from src.phi.recognizers import get_all_custom_recognizers
