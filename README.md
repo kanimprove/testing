@@ -9,26 +9,99 @@ Local pipeline for processing scanned clinical documents (faxes, referrals, inta
 3. **Encrypted Mapping** — Stores PHI mappings in Fernet-encrypted files for later re-identification
 4. **Re-Identification** — Restores original PHI from encrypted mappings when needed
 
-## Quick Start (Docker)
+## Windows Quick Start (No coding required)
+
+### One-time setup
+
+**Step 1 — Install Docker Desktop**
+
+1. Go to https://www.docker.com/products/docker-desktop/
+2. Click **"Download for Windows"**
+3. Run the installer — click Next through everything
+4. **Restart your computer** when it asks
+5. After restart, Docker Desktop opens automatically — wait for the green **"Engine running"** icon in the bottom-left
+
+> If it says "WSL 2 not installed": Open PowerShell as Administrator (right-click Start button → "Terminal (Admin)"), type `wsl --install`, press Enter, then restart.
+
+**Step 2 — Install Git**
+
+1. Go to https://git-scm.com/download/win
+2. Run the installer — click Next through everything (defaults are fine)
+
+**Step 3 — Download this project**
+
+1. Open **Git Bash** (search for it in the Start menu)
+2. Type this and press Enter:
+   ```
+   git clone https://github.com/kanimprove/testing.git
+   ```
+3. To find the folder: open **File Explorer** → click the address bar → type `%USERPROFILE%\testing` → press Enter
+
+**Step 4 — Run setup**
+
+1. Open the `testing` folder (see Step 3 for how to find it)
+2. **Double-click `setup.bat`**
+3. A black window appears — wait about 5 minutes while it downloads everything
+4. When you see "Setup complete!", press any key to close
+
+### Processing documents
+
+**Step 5 — Add your documents**
+
+1. Open the `testing` folder
+2. Open the `data` folder inside it
+3. Copy your scanned documents here (PDF, PNG, JPG, or TIFF files)
+
+**Step 6 — Run the pipeline**
+
+1. Go back to the `testing` folder
+2. **Double-click `process.bat`**
+3. Wait while it processes each document
+4. When done, the `output` folder opens automatically with your results
+
+**Step 7 — View results**
+
+Each `.txt` file in `output` contains the extracted text with all patient information replaced:
+- `John Smith` → `[PATIENT_001]`
+- `03/15/1958` → `[DATE_001]`
+- `412-68-7935` → `[SSN_001]`
+- etc.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---------|-----|
+| "Docker Desktop is not running" | Open Docker Desktop from Start menu, wait for green icon, try again |
+| Setup takes forever | The first build downloads ~1.5GB — needs good internet. Be patient. |
+| "No supported documents found" | Make sure your files are in the `data` folder (not a subfolder) |
+| Black window closes immediately | Right-click the `.bat` file → "Run as administrator" |
+
+---
+
+## Docker (command line)
 
 ```bash
 # Build the container (includes Tesseract, poppler, spaCy model)
 docker compose build
 
-# Process a document
-docker compose run phi-pipeline process /app/data/my_document.pdf
+# Process a single document
+docker compose run --rm phi-pipeline process /app/data/my_document.pdf
+
+# Process all documents in data/ folder
+docker compose run --rm phi-pipeline process-all /app/data
 
 # Re-identify
-docker compose run phi-pipeline reidentify <document_id> /app/output/<document_id>.txt
+docker compose run --rm phi-pipeline reidentify <document_id> /app/output/<document_id>.txt
 ```
 
-## Quick Start (Local)
+## Local Install (Linux/macOS)
 
 Requires: Python 3.11+, `tesseract-ocr`, `poppler-utils`
 
 ```bash
 # Install system dependencies (Ubuntu/Debian)
 sudo apt-get install tesseract-ocr poppler-utils
+# macOS: brew install tesseract poppler
 
 # Install Python dependencies
 pip install -r requirements.txt
@@ -36,6 +109,9 @@ python -m spacy download en_core_web_lg
 
 # Process a document
 python -m src.cli process path/to/document.pdf --output-dir ./output
+
+# Process all documents in a folder
+python -m src.cli process-all ./data --output-dir ./output
 
 # Re-identify a previously processed document
 python -m src.cli reidentify <document_id> ./output/<document_id>.txt

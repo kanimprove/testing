@@ -6,8 +6,10 @@ dist/
 build/
 .eggs/
 
-data/
-output/
+data/*
+!data/.gitkeep
+output/*
+!output/.gitkeep
 *.enc
 
 .env
