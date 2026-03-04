@@ -200,6 +200,20 @@ class TestPatientNameRecognizer:
         results = recognizer.analyze(text, entities=["PERSON"])
         assert len(results) == 0
 
+    def test_name_in_title_redacted_via_second_pass(self, deid):
+        """Name in document title should be redacted when also detected elsewhere."""
+        text = (
+            "SNF Admission Record - Margaret Chen\n"
+            "\n"
+            "Patient: Margaret Chen\n"
+            "MRN: 12345678\n"
+            "Date: 01/15/2025\n"
+        )
+        result = deid.deidentify(text)
+        assert "Margaret Chen" not in result.deidentified_text, (
+            "Patient name in document title was not redacted by second-pass sweep"
+        )
+
 
 class TestMappingStore:
     """Test encrypted PHI mapping storage and re-identification."""

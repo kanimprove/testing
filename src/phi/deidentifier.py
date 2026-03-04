@@ -192,6 +192,20 @@ class DeIdentifier:
 
             deidentified = deidentified[:result.start] + placeholder + deidentified[result.end:]
 
+        # Second pass: replace any remaining occurrences of detected PERSON names.
+        # This catches names in contexts that Presidio missed (e.g., document titles
+        # like "SNF Admission Record - Margaret Chen") when the same name was
+        # detected elsewhere (e.g., "Patient: Margaret Chen").
+        person_replacements = {}
+        for mapping in mappings:
+            if mapping.entity_type == "PERSON":
+                name = mapping.original_value.strip()
+                if len(name) >= 3 and name not in person_replacements:
+                    person_replacements[name] = mapping.placeholder
+
+        for name in sorted(person_replacements, key=len, reverse=True):
+            deidentified = deidentified.replace(name, person_replacements[name])
+
         return DeIdentificationResult(
             deidentified_text=deidentified,
             mappings=mappings,

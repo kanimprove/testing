@@ -26,18 +26,36 @@ def ocr_image(image: np.ndarray, config: str = "--oem 3 --psm 6") -> str:
 def ocr_pdf(pdf_path: str) -> str:
     """Convert PDF pages to images, preprocess, and OCR each page.
 
+    Processes one page at a time to avoid loading all pages into memory,
+    which can cause OOM crashes in memory-constrained environments (Docker).
+
     Returns concatenated text with page markers.
     """
+    import gc
     from pdf2image import convert_from_path
+    from pdf2image.pdf2image import pdfinfo_from_path
 
-    pages = convert_from_path(pdf_path, dpi=300)
+    info = pdfinfo_from_path(pdf_path)
+    total_pages = info.get("Pages", 0)
+    if total_pages == 0:
+        return ""
+
     results = []
-    for i, page in enumerate(pages, 1):
-        img = np.array(page)
+    for page_num in range(1, total_pages + 1):
+        pages = convert_from_path(
+            pdf_path, dpi=300,
+            first_page=page_num, last_page=page_num,
+        )
+        if not pages:
+            continue
+        img = np.array(pages[0])
+        del pages
         img = preprocess(img)
         text = ocr_image(img)
+        del img
         if text:
-            results.append(f"--- Page {i} ---\n{text}")
+            results.append(f"--- Page {page_num} ---\n{text}")
+        gc.collect()
     return "\n\n".join(results)
 
 

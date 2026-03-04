@@ -7,10 +7,16 @@ Usage:
 """
 
 import argparse
+import gc
 import glob
 import os
 import sys
 import traceback
+
+def _print(msg=""):
+    """Print and flush immediately so output is visible before potential crashes."""
+    print(msg)
+    sys.stdout.flush()
 
 SUPPORTED_EXTENSIONS = ("*.pdf", "*.png", "*.jpg", "*.jpeg", "*.tiff", "*.tif", "*.bmp")
 
@@ -60,12 +66,12 @@ def cmd_process_all(args):
         files.extend(glob.glob(os.path.join(args.input_dir, ext)))
 
     if not files:
-        print(f"No supported documents found in: {args.input_dir}")
-        print(f"Supported formats: PDF, PNG, JPG, TIFF, BMP")
-        print(f"\nPut your scanned documents in the folder and try again.")
+        _print(f"No supported documents found in: {args.input_dir}")
+        _print(f"Supported formats: PDF, PNG, JPG, TIFF, BMP")
+        _print(f"\nPut your scanned documents in the folder and try again.")
         return
 
-    print(f"Found {len(files)} document(s) to process.\n")
+    _print(f"Found {len(files)} document(s) to process.\n")
 
     deidentifier = DeIdentifier()
     success_count = 0
@@ -73,7 +79,7 @@ def cmd_process_all(args):
 
     for i, file_path in enumerate(sorted(files), 1):
         filename = os.path.basename(file_path)
-        print(f"[{i}/{len(files)}] Processing: {filename}")
+        _print(f"[{i}/{len(files)}] Processing: {filename}")
         try:
             result = process_document(
                 file_path=file_path,
@@ -83,19 +89,21 @@ def cmd_process_all(args):
             output_path = os.path.join(args.output_dir, f"{result.document_id}.txt")
             with open(output_path, "w") as f:
                 f.write(result.deidentified_text)
-            print(f"        Document ID:       {result.document_id}")
-            print(f"        Pages processed:   {result.pages_processed}")
-            print(f"        PHI entities found: {result.phi_count}")
-            print(f"        Output: {output_path}")
+            _print(f"        Document ID:       {result.document_id}")
+            _print(f"        Pages processed:   {result.pages_processed}")
+            _print(f"        PHI entities found: {result.phi_count}")
+            _print(f"        Output: {output_path}")
             success_count += 1
         except Exception as e:
-            print(f"        ERROR: {e}")
+            _print(f"        ERROR: {e}")
             traceback.print_exc()
+            sys.stdout.flush()
             fail_count += 1
-        print()
+        _print()
+        gc.collect()
 
-    print(f"Done! {success_count} succeeded, {fail_count} failed out of {len(files)} document(s).")
-    print(f"Results are in: {os.path.abspath(args.output_dir)}")
+    _print(f"Done! {success_count} succeeded, {fail_count} failed out of {len(files)} document(s).")
+    _print(f"Results are in: {os.path.abspath(args.output_dir)}")
 
 
 def cmd_reidentify(args):
