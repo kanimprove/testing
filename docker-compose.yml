@@ -1,0 +1,8 @@
+services:
+  phi-pipeline:
+    build: .
+    volumes:
+      - ./data:/app/data
+      - ./output:/app/output
+    environment:
+      - PHI_ENCRYPTION_KEY=${PHI_ENCRYPTION_KEY:-}
