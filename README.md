@@ -33,13 +33,13 @@ Local pipeline for processing scanned clinical documents (faxes, referrals, inta
 1. Open **Git Bash** (search for it in the Start menu)
 2. Type this and press Enter:
    ```
-   cd ~/Desktop && git clone https://github.com/kanimprove/testing.git
+   git clone https://github.com/kanimprove/testing.git
    ```
-3. You now have a `testing` folder on your Desktop
+3. To find the folder: open **File Explorer** → click the address bar → type `%USERPROFILE%\testing` → press Enter
 
 **Step 4 — Run setup**
 
-1. Open the `testing` folder on your Desktop
+1. Open the `testing` folder (see Step 3 for how to find it)
 2. **Double-click `setup.bat`**
 3. A black window appears — wait about 5 minutes while it downloads everything
 4. When you see "Setup complete!", press any key to close
@@ -48,7 +48,7 @@ Local pipeline for processing scanned clinical documents (faxes, referrals, inta
 
 **Step 5 — Add your documents**
 
-1. Open the `testing` folder on your Desktop
+1. Open the `testing` folder
 2. Open the `data` folder inside it
 3. Copy your scanned documents here (PDF, PNG, JPG, or TIFF files)
 
