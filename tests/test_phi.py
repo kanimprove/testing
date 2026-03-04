@@ -152,6 +152,55 @@ Email: john.smith.patient@email.com"""
         )
 
 
+class TestPatientNameRecognizer:
+    """Test the custom PatientNameRecognizer for structured clinical headers."""
+
+    @pytest.fixture
+    def deid(self):
+        return DeIdentifier()
+
+    def test_patient_header_margaret_chen(self, deid):
+        """The specific bug case — names spaCy NER misses in headers."""
+        text = "Patient: Margaret Chen\nMRN: 12345678"
+        result = deid.deidentify(text)
+        assert "Margaret Chen" not in result.deidentified_text, (
+            "Patient name 'Margaret Chen' in header was not de-identified"
+        )
+
+    def test_patient_name_header(self, deid):
+        text = "Patient Name: Aisha Patel\nDate: 03/15/2025"
+        result = deid.deidentify(text)
+        assert "Aisha Patel" not in result.deidentified_text
+
+    def test_pt_header(self, deid):
+        text = "Pt: Robert Kim\nFacility: General Hospital"
+        result = deid.deidentify(text)
+        assert "Robert Kim" not in result.deidentified_text
+
+    def test_client_header(self, deid):
+        text = "Client: Rosa Maria Garcia\nPhone: (555) 123-4567"
+        result = deid.deidentify(text)
+        assert "Rosa Maria Garcia" not in result.deidentified_text
+
+    def test_no_false_positive_in_prose(self):
+        """Prose without a colon header should not trigger the recognizer."""
+        from src.phi.recognizers import PatientNameRecognizer
+
+        recognizer = PatientNameRecognizer()
+        text = "The patient Margaret Chen was seen today for follow-up."
+        results = recognizer.analyze(text, entities=["PERSON"])
+        assert len(results) == 0
+
+    def test_single_word_name_ignored(self):
+        """Single-word values like 'Unknown' should not match."""
+        from src.phi.recognizers import PatientNameRecognizer
+
+        recognizer = PatientNameRecognizer()
+        text = "Patient: Unknown\nStatus: Admitted"
+        results = recognizer.analyze(text, entities=["PERSON"])
+        assert len(results) == 0
+
+
 class TestMappingStore:
     """Test encrypted PHI mapping storage and re-identification."""
 
