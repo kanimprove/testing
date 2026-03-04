@@ -41,8 +41,9 @@ class MappingStore:
         if not key:
             key = Fernet.generate_key().decode()
             warnings.warn(
-                f"PHI_ENCRYPTION_KEY not set. Generated ephemeral key: {key}\n"
-                "Set PHI_ENCRYPTION_KEY env var for persistent storage.",
+                "PHI_ENCRYPTION_KEY not set. Generated an ephemeral, non-persistent "
+                "encryption key for this process. Set PHI_ENCRYPTION_KEY env var for "
+                "persistent storage and re-identification across processes.",
                 stacklevel=2,
             )
         if isinstance(key, str):
