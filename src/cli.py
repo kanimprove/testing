@@ -2,12 +2,16 @@
 
 Usage:
     python -m src.cli process <file_path> [--output-dir ./output]
+    python -m src.cli process-all <input_dir> [--output-dir ./output]
     python -m src.cli reidentify <document_id> <deidentified_text_file> [--mapping-dir ./data/phi_mappings]
 """
 
 import argparse
+import glob
 import os
 import sys
+
+SUPPORTED_EXTENSIONS = ("*.pdf", "*.png", "*.jpg", "*.jpeg", "*.tiff", "*.tif", "*.bmp")
 
 
 def cmd_process(args):
@@ -39,6 +43,49 @@ def cmd_process(args):
         print(f"Encrypted mapping: {args.mapping_dir}/{result.document_id}.enc")
 
     return result
+
+
+def cmd_process_all(args):
+    """Process all supported documents in a directory."""
+    from src.pipeline import process_document
+    from src.phi.mapping import MappingStore
+
+    os.makedirs(args.output_dir, exist_ok=True)
+    mapping_store = MappingStore(storage_dir=args.mapping_dir)
+
+    files = []
+    for ext in SUPPORTED_EXTENSIONS:
+        files.extend(glob.glob(os.path.join(args.input_dir, ext)))
+
+    if not files:
+        print(f"No supported documents found in: {args.input_dir}")
+        print(f"Supported formats: PDF, PNG, JPG, TIFF, BMP")
+        print(f"\nPut your scanned documents in the folder and try again.")
+        return
+
+    print(f"Found {len(files)} document(s) to process.\n")
+
+    for i, file_path in enumerate(sorted(files), 1):
+        filename = os.path.basename(file_path)
+        print(f"[{i}/{len(files)}] Processing: {filename}")
+        try:
+            result = process_document(
+                file_path=file_path,
+                mapping_store=mapping_store,
+            )
+            output_path = os.path.join(args.output_dir, f"{result.document_id}.txt")
+            with open(output_path, "w") as f:
+                f.write(result.deidentified_text)
+            print(f"        Document ID:       {result.document_id}")
+            print(f"        Pages processed:   {result.pages_processed}")
+            print(f"        PHI entities found: {result.phi_count}")
+            print(f"        Output: {output_path}")
+        except Exception as e:
+            print(f"        ERROR: {e}")
+        print()
+
+    print(f"Done! Processed {len(files)} document(s).")
+    print(f"Results are in: {os.path.abspath(args.output_dir)}")
 
 
 def cmd_reidentify(args):
@@ -73,6 +120,13 @@ def main():
     proc.add_argument("--output-dir", default="./output", help="Directory for de-identified output")
     proc.add_argument("--mapping-dir", default="./data/phi_mappings", help="Directory for encrypted mappings")
     proc.set_defaults(func=cmd_process)
+
+    # process-all command
+    proc_all = subparsers.add_parser("process-all", help="OCR and de-identify all documents in a folder")
+    proc_all.add_argument("input_dir", help="Directory containing documents to process")
+    proc_all.add_argument("--output-dir", default="./output", help="Directory for de-identified output")
+    proc_all.add_argument("--mapping-dir", default="./data/phi_mappings", help="Directory for encrypted mappings")
+    proc_all.set_defaults(func=cmd_process_all)
 
     # reidentify command
     reid = subparsers.add_parser("reidentify", help="Re-identify a de-identified document")
